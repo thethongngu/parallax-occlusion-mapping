@@ -1,0 +1,24 @@
+Environment: Windows
+Languages: C, C++, Java, Python
+Shader language: OpenGL
+
+Assignment submission:
+Your submitted zip file should contain the following files:
+(1) all source files, and 
+(2) an executable exe file.  
+The zip file should be named with the format “RTR_STUDENT ID _HW2.zip”, and submitted via the e3 platform. (example: RTR_0656602_HW2.zip)
+
+
+Grading Policy:
+Total score 100 points
+    Shell Mapping (+80 points)
+      -Load and Show obj
+      -Parallax Occlusion Mapping
+    Silhouettes (+20 points)
+
+(-10 points/day) 10 points deducted for every day late
+(-100 points) Plagiarism
+(-10 points) 10 points deducted for not using the obj provided by the TA
+(-10 points) 10 points deducted for not using the texture provided by the TA
+(-20 points) 20 points deducted for missing files
+(-10 points) 10 points deducted for not using the correct zip file name
