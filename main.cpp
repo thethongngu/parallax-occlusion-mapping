@@ -8,6 +8,7 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "FreeImage.h"
 
 #define debug(a) std::cerr << #a << " = " << a << std::endl;
 
@@ -99,6 +100,7 @@ int main(void) {
     
     load_obj();
 
+    // Compile shader
     GLuint shader_program = glCreateProgram();
     compile_shader(GL_VERTEX_SHADER, "vertex_shader.glsl", shader_program);
     compile_shader(GL_FRAGMENT_SHADER, "fragment_shader.glsl", shader_program);
@@ -108,16 +110,47 @@ int main(void) {
     GLint view_shader = glGetUniformLocation(shader_program, "view");
     GLint projection_shader = glGetUniformLocation(shader_program, "projection");
 
+    // Setup VAO
     GLuint vao = 0;
     glCreateVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    GLuint buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    // Setup VBO 
+    GLuint vbo_vertices;
+    glGenBuffers(1, &vbo_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
+    glEnableVertexAttribArray(0);
+
+    GLuint vbo_textures;
+    glGenBuffers(1, &vbo_textures);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_textures);
+    glBufferData(GL_ARRAY_BUFFER, textures.size() * sizeof(float), &textures[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+    glEnableVertexAttribArray(1);
+
+    GLuint vbo_normals;
+    glGenBuffers(1, &vbo_normals);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), &normals[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
+    glEnableVertexAttribArray(2);
+
+    // Setup texture image
+    GLuint texture_id;
+    glGenTextures(1, &texture_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    std::string texture_path = "rock.jpg";
+    FIBITMAP *texImage = FreeImage_ConvertTo24Bits(FreeImage_Load(FIF_JPEG, texture_path.c_str()));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, FreeImage_GetWidth(texImage), FreeImage_GetHeight(texImage), 0, GL_RGB, GL_UNSIGNED_BYTE, (void *)FreeImage_GetBits(texImage));
+
 
     GLuint index;
     glGenBuffers(1, &index);
@@ -126,19 +159,18 @@ int main(void) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index);
 
+    // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 30),  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 4.0f / 3.0f, 0.1f, 100.0f);    
+    glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
+    glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(projection_shader, 1, GL_FALSE, &projection[0][0]);
 
+    // Main loop
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
-
-        glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
-        glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
-        glUniformMatrix4fv(projection_shader, 1, GL_FALSE, &projection[0][0]);
-
         glDrawElements(GL_TRIANGLE_FAN, faces.size(), GL_UNSIGNED_INT, 0);
-
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
