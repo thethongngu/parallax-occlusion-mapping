@@ -109,6 +109,7 @@ int main(void) {
     GLint model_shader = glGetUniformLocation(shader_program, "model");
     GLint view_shader = glGetUniformLocation(shader_program, "view");
     GLint projection_shader = glGetUniformLocation(shader_program, "projection");
+    GLint texture_shader = glGetUniformLocation(shader_program, "texture_data");
 
     // Setup VAO
     GLuint vao = 0;
@@ -140,6 +141,7 @@ int main(void) {
     // Setup texture image
     GLuint texture_id;
     glGenTextures(1, &texture_id);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture_id);
 
     std::string texture_path = "rock.jpg";
@@ -165,6 +167,7 @@ int main(void) {
     glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
     glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
     glUniformMatrix4fv(projection_shader, 1, GL_FALSE, &projection[0][0]);
+    
 
     // Main loop
     while (!glfwWindowShouldClose(window)) {
