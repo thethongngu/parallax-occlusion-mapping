@@ -128,6 +128,8 @@ void main(){
 
     out_color = tex_color;
 
+    // out_color = vec4(0.0, 1.0, 0.0, 1.0);
+
     // vec4 ambient = tex_color * ka;
     // vec4 diffuse = tex_color * kd;
     // vec4 specular = vec4(vec3(1.0, 1.0, 1.0) * ks, 1.0);

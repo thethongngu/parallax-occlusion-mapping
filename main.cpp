@@ -13,8 +13,8 @@
 #define PI 3.14159
 
 #define debug(a) std::cerr << #a << " = " << a << std::endl;
+#define stop1() std::string a; std::cin >> a;
 
-std::vector<uint32_t> vertex_ind, texture_ind, normal_ind;
 std::vector<float> vertices, normals, textures;
 std::vector<unsigned int> faces;
 
@@ -47,11 +47,39 @@ void load_obj() {
 
         } else if (type == "f") {
             std::string raw_data;
+            int vertex_index[4], texture_index[4], normal_index[4];
             for(int i = 0 ; i < 4; i++) {
                 obj_file >> raw_data;
-                auto vertex = atoi(raw_data.substr(0, raw_data.find('/')).c_str());
-                faces.push_back(vertex - 1);
+                auto slash_st = raw_data.find('/');
+                auto slash_nd = raw_data.find('/', slash_st + 1);
+                vertex_index[i] = atoi(raw_data.substr(0, slash_st).c_str());
+                texture_index[i] = atoi(raw_data.substr(slash_st + 1, slash_nd - slash_st - 1).c_str());
+                normal_index[i] = atoi(raw_data.substr(slash_nd + 1).c_str());
             }
+
+            faces.push_back(vertex_index[0] - 1);
+            faces.push_back(vertex_index[1] - 1);
+            faces.push_back(vertex_index[2] - 1);
+
+            // faces.push_back(texture_index[0] - 1);
+            // faces.push_back(texture_index[1] - 1);
+            // faces.push_back(texture_index[2] - 1);
+
+            // faces.push_back(normal_index[0] - 1);
+            // faces.push_back(normal_index[1] - 1);
+            // faces.push_back(normal_index[2] - 1);
+
+            faces.push_back(vertex_index[0] - 1);
+            faces.push_back(vertex_index[2] - 1);
+            faces.push_back(vertex_index[3] - 1);
+
+            // faces.push_back(texture_index[0] - 1);
+            // faces.push_back(texture_index[2] - 1);
+            // faces.push_back(texture_index[3] - 1);
+
+            // faces.push_back(normal_index[0] - 1);
+            // faces.push_back(normal_index[2] - 1);
+            // faces.push_back(normal_index[3] - 1);
         }
     }
 
@@ -143,24 +171,21 @@ int main(void) {
     GLuint vbo_vertices;
     glGenBuffers(1, &vbo_vertices);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
-    glEnableVertexAttribArray(0);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
 
     GLuint vbo_textures;
     glGenBuffers(1, &vbo_textures);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_textures);
-    glBufferData(GL_ARRAY_BUFFER, textures.size() * sizeof(float), &textures[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-    glEnableVertexAttribArray(1);
+    glBufferData(GL_ARRAY_BUFFER, textures.size() * sizeof(float), textures.data(), GL_STATIC_DRAW);
+    
+    
 
     GLuint vbo_normals;
     glGenBuffers(1, &vbo_normals);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), &normals[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
-    glEnableVertexAttribArray(2);
-
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), normals.data(), GL_STATIC_DRAW);
+    
+    
     // Setup texture
     GLuint texture_id, normal_id, heightmap_id;
     load_texture(normal_id, 1, "rock_normal.jpg", FIF_JPEG);
@@ -170,9 +195,16 @@ int main(void) {
     GLuint index;
     glGenBuffers(1, &index);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), &faces[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLuint), 0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLuint), &faces[3]);
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLuint), &faces[5]);
 
     // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
@@ -200,7 +232,9 @@ int main(void) {
 
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
+        glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
