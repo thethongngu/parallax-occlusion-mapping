@@ -10,6 +10,8 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "FreeImage.h"
 
+#define PI 3.14159
+
 #define debug(a) std::cerr << #a << " = " << a << std::endl;
 
 std::vector<uint32_t> vertex_ind, texture_ind, normal_ind;
@@ -83,9 +85,25 @@ void compile_shader(GLuint type, std::string path, GLuint& shader_program) {
     glDeleteShader(shader_id);
 }
 
+void load_texture(GLuint &tbo, int tex_unit, const std::string tex_path, FREE_IMAGE_FORMAT img_type) {
+    glActiveTexture(GL_TEXTURE0 + tex_unit);
+    FIBITMAP *tex_img = FreeImage_ConvertTo24Bits(FreeImage_Load(img_type, tex_path.c_str()));
+
+    glGenTextures(1, &tbo);
+    glBindTexture(GL_TEXTURE_2D, tbo);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGB, FreeImage_GetWidth(tex_img),
+        FreeImage_GetHeight(tex_img), 0, GL_BGR, GL_UNSIGNED_BYTE,
+        (void *)FreeImage_GetBits(tex_img)
+    );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    FreeImage_Unload(tex_img);
+}
+
 int main(void) {
     GLFWwindow* window;
     if (!glfwInit()) exit(EXIT_FAILURE);
+    FreeImage_Initialise(true);
 
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
@@ -110,6 +128,11 @@ int main(void) {
     GLint view_shader = glGetUniformLocation(shader_program, "view");
     GLint projection_shader = glGetUniformLocation(shader_program, "projection");
     GLint texture_shader = glGetUniformLocation(shader_program, "texture_data");
+    GLint normal_shader = glGetUniformLocation(shader_program, "normal_data");
+    GLint heightmap_shader = glGetUniformLocation(shader_program, "heightmap_data");
+
+    GLint eye_point_shader = glGetUniformLocation(shader_program, "eye_point");
+    GLint light_pos_shader = glGetUniformLocation(shader_program, "light_pos");
 
     // Setup VAO
     GLuint vao = 0;
@@ -138,21 +161,12 @@ int main(void) {
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
     glEnableVertexAttribArray(2);
 
-    // Setup texture image
-    GLuint texture_id;
-    glGenTextures(1, &texture_id);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-
-    std::string texture_path = "rock.jpg";
-    FIBITMAP *texImage = FreeImage_ConvertTo24Bits(FreeImage_Load(FIF_JPEG, texture_path.c_str()));
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, FreeImage_GetWidth(texImage), FreeImage_GetHeight(texImage), 0, GL_RGB, GL_UNSIGNED_BYTE, (void *)FreeImage_GetBits(texImage));
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    FreeImage_Unload(texImage);
-
+    // Setup texture
+    GLuint texture_id, normal_id, heightmap_id;
+    load_texture(normal_id, 1, "rock_normal.jpg", FIF_JPEG);
+    load_texture(heightmap_id, 2, "rock_height.png", FIF_PNG);
+    load_texture(texture_id, 3, "rock.jpg", FIF_JPEG);
+    
     GLuint index;
     glGenBuffers(1, &index);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index);
@@ -162,17 +176,31 @@ int main(void) {
 
     // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 30),  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    glm::vec3 eye = glm::vec3(0, 0, 20);
+    glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 4.0f / 3.0f, 0.1f, 100.0f);    
-    glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
-    glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
-    glUniformMatrix4fv(projection_shader, 1, GL_FALSE, &projection[0][0]);
-    
+    glm::vec3 light_pos = glm::vec3(0, 0, 50);
 
+    // Init data for shader
+    glUniformMatrix4fv(projection_shader, 1, GL_FALSE, &projection[0][0]);
+    glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
+    glUniform1i(normal_shader, normal_id);
+    glUniform1i(heightmap_shader, heightmap_id);
+    glUniform1i(texture_shader, texture_id);
+    glUniform3fv(eye_point_shader, 1, &eye[0]);
+    glUniform3fv(light_pos_shader, 1, &light_pos[0]);
+    
     // Main loop
+    float degree = 0.5;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
-        glDrawElements(GL_TRIANGLE_FAN, faces.size(), GL_UNSIGNED_INT, 0);
+
+        degree = fmod(degree, 360);
+        model = glm::rotate(model, glm::radians(degree), glm::vec3(1, 0, 0));
+
+        glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
+
+        glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
