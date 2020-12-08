@@ -19,7 +19,7 @@ mat3 compute_tbn(vec2 uv){
     vec3 n  = normalize(out_normal);
     vec3 t  = normalize(Q1*st2.t - Q2*st1.t);
 
-    vec3 b = normalize(-Q1*st2.s + Q2*st1.s);
+    vec3 b = -normalize(-Q1*st2.s + Q2*st1.s);
 
     mat3 tbn = mat3(t, b, n);
 
@@ -49,14 +49,14 @@ vec2 parallax_occlusion_mapping(vec2 texCoords, vec3 viewDir) {
 
     // get initial values
     vec2  currentTexCoords     = texCoords;
-    float currentDepthMapValue = texture(texture_data, currentTexCoords).r;
+    float currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;
 
     while(currentLayerDepth < currentDepthMapValue)
     {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;
         // get depthmap value at current texture coordinates
-        currentDepthMapValue = texture(texture_data, currentTexCoords).r;
+        currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;
         // get depth of next layer
         currentLayerDepth += layerDepth;
     }
@@ -66,7 +66,7 @@ vec2 parallax_occlusion_mapping(vec2 texCoords, vec3 viewDir) {
 
     // get depth after and before collision for linear interpolation
     float afterDepth  = currentDepthMapValue - currentLayerDepth;
-    float beforeDepth = texture(texture_data, prevTexCoords).r - currentLayerDepth + layerDepth;
+    float beforeDepth = texture(heightmap_data, prevTexCoords).r - currentLayerDepth + layerDepth;
 
     // interpolation of texture coordinates
     float weight = afterDepth / (afterDepth - beforeDepth);
@@ -75,8 +75,6 @@ vec2 parallax_occlusion_mapping(vec2 texCoords, vec3 viewDir) {
     return finalTexCoords;
 }
 
-// hard shadow: https://stackoverflow.com/a/55091654/3584162
-// soft shadow: https://github.com/piellardj/parallax-mapping/blob/master/shaders/parallax.frag (better effect)
 float calcShadow(vec2 texCoords, vec3 lightDir) {
     float selfShadowFactor = 1.0f;
 
@@ -86,7 +84,7 @@ float calcShadow(vec2 texCoords, vec3 lightDir) {
     float heightScale = 0.1f;
 
     vec2 currentTexCoords = texCoords;
-    float currentDepthMapValue = texture(texture_data, currentTexCoords).r;
+    float currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;
     float currentLayerDepth = currentDepthMapValue;
 
     float layerDepth = 1.0 / numLayers;
@@ -96,7 +94,7 @@ float calcShadow(vec2 texCoords, vec3 lightDir) {
     while (currentLayerDepth > 0.0)
     {
         currentTexCoords += deltaTexCoords;
-        currentDepthMapValue = texture(texture_data, currentTexCoords).r;
+        currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;
         currentLayerDepth -= layerDepth;
 
         if(currentDepthMapValue < currentLayerDepth){
@@ -127,10 +125,6 @@ void main(){
     float alpha = 20;
 
     out_color = tex_color;
-
-    // vec3 colorFrag = texture(texture_data, out_texture).xyz;
-    // out_color = vec4(colorFrag, 1.0);
-    // out_color = vec4(0.0, 1.0, 0.0, 1.0);
 
     vec4 ambient = tex_color * ka;
     vec4 diffuse = tex_color * kd;
