@@ -123,10 +123,10 @@ void load_obj() {
             glm::vec3 tangent2, bitangent2;
 
             // triangle 1
-            glm::vec3 edge1 = vertices[vertex_index[1] - 1] - vertices[vertex_index[0] - 1];
-            glm::vec3 edge2 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
-            glm::vec2 deltaUV1 = textures[normal_index[1] - 1] - textures[normal_index[0] - 1];
-            glm::vec2 deltaUV2 = textures[normal_index[2] - 1] - textures[normal_index[0] - 1];
+            glm::vec3 edge1 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
+            glm::vec3 edge2 = vertices[vertex_index[1] - 1] - vertices[vertex_index[0] - 1];
+            glm::vec2 deltaUV1 = textures[texture_index[2] - 1] - textures[texture_index[0] - 1];
+            glm::vec2 deltaUV2 = textures[texture_index[1] - 1] - textures[texture_index[0] - 1];
 
             float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
@@ -141,10 +141,10 @@ void load_obj() {
             bitangent1 = glm::normalize(bitangent1);
 
             // triangle 2
-            edge1 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
-            edge2 = vertices[vertex_index[3] - 1] - vertices[vertex_index[0] - 1];
-            deltaUV1 = textures[normal_index[2] - 1] - textures[normal_index[0] - 1];
-            deltaUV2 = textures[normal_index[3] - 1] - textures[normal_index[0] - 1];
+            edge1 = vertices[vertex_index[3] - 1] - vertices[vertex_index[0] - 1];
+            edge2 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
+            deltaUV1 = textures[texture_index[3] - 1] - textures[texture_index[0] - 1];
+            deltaUV2 = textures[texture_index[2] - 1] - textures[texture_index[0] - 1];
 
             f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
@@ -270,9 +270,9 @@ void load_texture(GLuint &tbo, int tex_unit, const std::string tex_path, FREE_IM
         (void *)FreeImage_GetBits(tex_img)
     );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     FreeImage_Unload(tex_img);
 }
 
@@ -379,14 +379,14 @@ int main(void) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_tangent);
     glBufferData(GL_ARRAY_BUFFER, tangent_coords.size() * sizeof(float), tangent_coords.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     GLuint vbo_bitangent;
     glGenBuffers(1, &vbo_bitangent);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_bitangent);
     glBufferData(GL_ARRAY_BUFFER, bitangent_coords.size() * sizeof(float), bitangent_coords.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, 0);
     
     
     // Setup texture
@@ -422,11 +422,9 @@ int main(void) {
 
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CW);
-    // glCullFace(GL_FRONT);
-    // glFrontFace(GL_CCW);  
     
     // Main loop
-    float degree = 1;
+    float degree = 10;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -435,7 +433,7 @@ int main(void) {
 
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
-        // stop1();
+        stop1();
 
         // glActiveTexture(GL_TEXTURE0);
         // glBindTexture(GL_TEXTURE_2D, texture_id);
