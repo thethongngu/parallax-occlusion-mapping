@@ -15,7 +15,27 @@
 #define debug(a) std::cerr << #a << " = " << a << std::endl;
 #define stop1() std::string a; std::cin >> a;
 
-std::vector<float> vertices, normals, textures;
+struct Vertex {
+    float x, y, z;
+    Vertex(float x, float y, float z) : x(x), y(y), z(z) {}
+};
+
+struct Normal {
+    float x, y, z;
+    Normal(float x, float y, float z) : x(x), y(y), z(z) {}
+};
+
+struct Texture {
+    float x, y;
+    Texture(float x, float y) : x(x), y(y) {}
+};
+
+std::vector<Vertex> vertices;
+std::vector<Normal> normals;
+std::vector<Texture> textures;
+
+std::vector<float> vertex_coords, normal_coords, texture_coords;
+
 std::vector<unsigned int> faces;
 
 void load_obj() {
@@ -28,22 +48,17 @@ void load_obj() {
         if (type == "v") {
             float x, y, z;
             obj_file >> x >> y >> z;
-            vertices.push_back(x);
-            vertices.push_back(y);
-            vertices.push_back(z);
+            vertices.emplace_back(x, y, z);
 
         } else if (type == "vn") {
             float x, y, z;
             obj_file >> x >> y >> z;
-            normals.push_back(x);
-            normals.push_back(y);
-            normals.push_back(z);
+            normals.emplace_back(x, y, z);
 
         } else if (type == "vt") {
             float x, y, z;
             obj_file >> x >> y >> z;
-            textures.push_back(x);
-            textures.push_back(y);
+            textures.emplace_back(x, y);
 
         } else if (type == "f") {
             std::string raw_data;
@@ -57,9 +72,63 @@ void load_obj() {
                 normal_index[i] = atoi(raw_data.substr(slash_nd + 1).c_str());
             }
 
-            faces.push_back(vertex_index[0] - 1);
-            faces.push_back(vertex_index[1] - 1);
-            faces.push_back(vertex_index[2] - 1);
+            vertex_coords.push_back(vertices[vertex_index[0] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[0] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[0] - 1].z);
+            vertex_coords.push_back(vertices[vertex_index[1] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[1] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[1] - 1].z);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
+
+            vertex_coords.push_back(vertices[vertex_index[0] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[0] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[0] - 1].z);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
+            vertex_coords.push_back(vertices[vertex_index[3] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[3] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[3] - 1].z);
+
+            normal_coords.push_back(normals[normal_index[0] - 1].y);
+            normal_coords.push_back(normals[normal_index[0] - 1].x);
+            normal_coords.push_back(normals[normal_index[0] - 1].z);
+            normal_coords.push_back(normals[normal_index[1] - 1].x);
+            normal_coords.push_back(normals[normal_index[1] - 1].y);
+            normal_coords.push_back(normals[normal_index[1] - 1].z);
+            normal_coords.push_back(normals[normal_index[2] - 1].x);
+            normal_coords.push_back(normals[normal_index[2] - 1].y);
+            normal_coords.push_back(normals[normal_index[2] - 1].z);
+
+            normal_coords.push_back(normals[normal_index[0] - 1].y);
+            normal_coords.push_back(normals[normal_index[0] - 1].x);
+            normal_coords.push_back(normals[normal_index[0] - 1].z);
+            normal_coords.push_back(normals[normal_index[2] - 1].x);
+            normal_coords.push_back(normals[normal_index[2] - 1].y);
+            normal_coords.push_back(normals[normal_index[2] - 1].z);
+            normal_coords.push_back(normals[normal_index[3] - 1].x);
+            normal_coords.push_back(normals[normal_index[3] - 1].y);
+            normal_coords.push_back(normals[normal_index[3] - 1].z);
+
+            texture_coords.push_back(textures[texture_index[0] - 1].x);
+            texture_coords.push_back(textures[texture_index[0] - 1].y);
+            texture_coords.push_back(textures[texture_index[1] - 1].x);
+            texture_coords.push_back(textures[texture_index[1] - 1].y);
+            texture_coords.push_back(textures[texture_index[2] - 1].x);
+            texture_coords.push_back(textures[texture_index[2] - 1].y);
+
+            texture_coords.push_back(textures[texture_index[0] - 1].x);
+            texture_coords.push_back(textures[texture_index[0] - 1].y);
+            texture_coords.push_back(textures[texture_index[2] - 1].x);
+            texture_coords.push_back(textures[texture_index[2] - 1].y);
+            texture_coords.push_back(textures[texture_index[3] - 1].x);
+            texture_coords.push_back(textures[texture_index[3] - 1].y);
+
+            // faces.push_back(vertex_index[0] - 1);
+            // faces.push_back(vertex_index[1] - 1);
+            // faces.push_back(vertex_index[2] - 1);
 
             // faces.push_back(texture_index[0] - 1);
             // faces.push_back(texture_index[1] - 1);
@@ -69,9 +138,9 @@ void load_obj() {
             // faces.push_back(normal_index[1] - 1);
             // faces.push_back(normal_index[2] - 1);
 
-            faces.push_back(vertex_index[0] - 1);
-            faces.push_back(vertex_index[2] - 1);
-            faces.push_back(vertex_index[3] - 1);
+            // faces.push_back(vertex_index[0] - 1);
+            // faces.push_back(vertex_index[2] - 1);
+            // faces.push_back(vertex_index[3] - 1);
 
             // faces.push_back(texture_index[0] - 1);
             // faces.push_back(texture_index[2] - 1);
@@ -125,6 +194,9 @@ void load_texture(GLuint &tbo, int tex_unit, const std::string tex_path, FREE_IM
         (void *)FreeImage_GetBits(tex_img)
     );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     FreeImage_Unload(tex_img);
 }
 
@@ -155,6 +227,7 @@ int main(void) {
     GLint model_shader = glGetUniformLocation(shader_program, "model");
     GLint view_shader = glGetUniformLocation(shader_program, "view");
     GLint projection_shader = glGetUniformLocation(shader_program, "projection");
+
     GLint texture_shader = glGetUniformLocation(shader_program, "texture_data");
     GLint normal_shader = glGetUniformLocation(shader_program, "normal_data");
     GLint heightmap_shader = glGetUniformLocation(shader_program, "heightmap_data");
@@ -171,19 +244,23 @@ int main(void) {
     GLuint vbo_vertices;
     glGenBuffers(1, &vbo_vertices);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
-
-    GLuint vbo_textures;
-    glGenBuffers(1, &vbo_textures);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_textures);
-    glBufferData(GL_ARRAY_BUFFER, textures.size() * sizeof(float), textures.data(), GL_STATIC_DRAW);
-    
-    
+    glBufferData(GL_ARRAY_BUFFER, vertex_coords.size() * sizeof(GLfloat), vertex_coords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     GLuint vbo_normals;
     glGenBuffers(1, &vbo_normals);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_normals);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), normals.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, normal_coords.size() * sizeof(float), normal_coords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    GLuint vbo_textures;
+    glGenBuffers(1, &vbo_textures);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_textures);
+    glBufferData(GL_ARRAY_BUFFER, texture_coords.size() * sizeof(float), texture_coords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
     
     
     // Setup texture
@@ -191,29 +268,16 @@ int main(void) {
     load_texture(normal_id, 1, "rock_normal.jpg", FIF_JPEG);
     load_texture(heightmap_id, 2, "rock_height.png", FIF_PNG);
     load_texture(texture_id, 3, "rock.jpg", FIF_JPEG);
-    
-    GLuint index;
-    glGenBuffers(1, &index);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLuint), 0);
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLuint), &faces[3]);
-
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLuint), &faces[5]);
 
     // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
-    glm::vec3 eye = glm::vec3(0, 0, 20);
+    glm::vec3 eye = glm::vec3(0, 20, 20);
     glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 4.0f / 3.0f, 0.1f, 100.0f);    
     glm::vec3 light_pos = glm::vec3(0, 0, 50);
 
     // Init data for shader
+    glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
     glUniformMatrix4fv(projection_shader, 1, GL_FALSE, &projection[0][0]);
     glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
     glUniform1i(normal_shader, normal_id);
@@ -221,6 +285,10 @@ int main(void) {
     glUniform1i(texture_shader, texture_id);
     glUniform3fv(eye_point_shader, 1, &eye[0]);
     glUniform3fv(light_pos_shader, 1, &light_pos[0]);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);  
     
     // Main loop
     float degree = 0.5;
@@ -232,8 +300,10 @@ int main(void) {
 
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
+        // stop1();
+
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, vertex_coords.size());
         
         glfwSwapBuffers(window);
         glfwPollEvents();

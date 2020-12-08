@@ -15,8 +15,11 @@ out vec2 out_texture;
 
 void main() {
     gl_Position = projection * view * model * vec4(in_vertex, 1.0);
-    out_texture = in_texture;
+
     out_vertex = (model * vec4(in_vertex, 1.0)).xyz;
+
     out_normal = (vec4(in_normal, 1.0) * inverse(model)).xyz;
     out_normal = normalize(out_normal);
+
+    out_texture = in_texture;
 }

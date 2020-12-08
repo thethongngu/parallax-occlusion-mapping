@@ -128,23 +128,25 @@ void main(){
 
     out_color = tex_color;
 
+    // vec3 colorFrag = texture(texture_data, out_texture).xyz;
+    // out_color = vec4(colorFrag, 1.0);
     // out_color = vec4(0.0, 1.0, 0.0, 1.0);
 
-    // vec4 ambient = tex_color * ka;
-    // vec4 diffuse = tex_color * kd;
-    // vec4 specular = vec4(vec3(1.0, 1.0, 1.0) * ks, 1.0);
+    vec4 ambient = tex_color * ka;
+    vec4 diffuse = tex_color * kd;
+    vec4 specular = vec4(vec3(1.0, 1.0, 1.0) * ks, 1.0);
 
-    // float dist = length(L);
-    // float attenuation = 1.0 / (dist * dist);
-    // float dc = max(dot(N, L), 0.0);
-    // float sc = pow(max(dot(H, N), 0.0), alpha);
+    float dist = length(L);
+    float attenuation = 1.0 / (dist * dist);
+    float dc = max(dot(N, L), 0.0);
+    float sc = pow(max(dot(H, N), 0.0), alpha);
 
-    // vec3 tan_light_dir = normalize(compute_tbn(out_texture) * (light_pos - out_vertex));
-    // float shadow = calcShadow(distorted_uv, tan_light_dir);
+    vec3 tan_light_dir = normalize(compute_tbn(out_texture) * (light_pos - out_vertex));
+    float shadow = calcShadow(distorted_uv, tan_light_dir);
 
-    // out_color += ambient;
-    // out_color += diffuse * dc * attenuation * shadow;
-    // out_color += specular * sc * attenuation * shadow;
+    out_color += ambient;
+    out_color += diffuse * dc * attenuation * shadow;
+    out_color += specular * sc * attenuation * shadow;
 }
 
 
