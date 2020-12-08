@@ -6,35 +6,25 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "stb_image.h"
 #include "FreeImage.h"
+
+
 
 #define PI 3.14159
 
 #define debug(a) std::cerr << #a << " = " << a << std::endl;
 #define stop1() std::string a; std::cin >> a;
 
-struct Vertex {
-    float x, y, z;
-    Vertex(float x, float y, float z) : x(x), y(y), z(z) {}
-};
+std::vector<glm::vec3> vertices;
+std::vector<glm::vec3> normals;
+std::vector<glm::vec2> textures;
 
-struct Normal {
-    float x, y, z;
-    Normal(float x, float y, float z) : x(x), y(y), z(z) {}
-};
-
-struct Texture {
-    float x, y;
-    Texture(float x, float y) : x(x), y(y) {}
-};
-
-std::vector<Vertex> vertices;
-std::vector<Normal> normals;
-std::vector<Texture> textures;
-
-std::vector<float> vertex_coords, normal_coords, texture_coords;
+std::vector<float> vertex_coords, normal_coords, texture_coords, tangent_coords, bitangent_coords;
 
 std::vector<unsigned int> faces;
 
@@ -48,17 +38,17 @@ void load_obj() {
         if (type == "v") {
             float x, y, z;
             obj_file >> x >> y >> z;
-            vertices.emplace_back(x, y, z);
+            vertices.push_back(glm::vec3(x, y, z));
 
         } else if (type == "vn") {
             float x, y, z;
             obj_file >> x >> y >> z;
-            normals.emplace_back(x, y, z);
+            normals.push_back(glm::vec3(x, y, z));
 
         } else if (type == "vt") {
             float x, y, z;
             obj_file >> x >> y >> z;
-            textures.emplace_back(x, y);
+            textures.push_back(glm::vec2(x, y));
 
         } else if (type == "f") {
             std::string raw_data;
@@ -75,56 +65,142 @@ void load_obj() {
             vertex_coords.push_back(vertices[vertex_index[0] - 1].x);
             vertex_coords.push_back(vertices[vertex_index[0] - 1].y);
             vertex_coords.push_back(vertices[vertex_index[0] - 1].z);
-            vertex_coords.push_back(vertices[vertex_index[1] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[1] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[1] - 1].z);
             vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
             vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
             vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
+            vertex_coords.push_back(vertices[vertex_index[1] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[1] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[1] - 1].z);
 
             vertex_coords.push_back(vertices[vertex_index[0] - 1].x);
             vertex_coords.push_back(vertices[vertex_index[0] - 1].y);
             vertex_coords.push_back(vertices[vertex_index[0] - 1].z);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
             vertex_coords.push_back(vertices[vertex_index[3] - 1].x);
             vertex_coords.push_back(vertices[vertex_index[3] - 1].y);
             vertex_coords.push_back(vertices[vertex_index[3] - 1].z);
-
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
+            vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
+        
             normal_coords.push_back(normals[normal_index[0] - 1].y);
             normal_coords.push_back(normals[normal_index[0] - 1].x);
             normal_coords.push_back(normals[normal_index[0] - 1].z);
+            normal_coords.push_back(normals[normal_index[2] - 1].x);
+            normal_coords.push_back(normals[normal_index[2] - 1].y);
+            normal_coords.push_back(normals[normal_index[2] - 1].z);
             normal_coords.push_back(normals[normal_index[1] - 1].x);
             normal_coords.push_back(normals[normal_index[1] - 1].y);
             normal_coords.push_back(normals[normal_index[1] - 1].z);
-            normal_coords.push_back(normals[normal_index[2] - 1].x);
-            normal_coords.push_back(normals[normal_index[2] - 1].y);
-            normal_coords.push_back(normals[normal_index[2] - 1].z);
-
+            
             normal_coords.push_back(normals[normal_index[0] - 1].y);
             normal_coords.push_back(normals[normal_index[0] - 1].x);
             normal_coords.push_back(normals[normal_index[0] - 1].z);
-            normal_coords.push_back(normals[normal_index[2] - 1].x);
-            normal_coords.push_back(normals[normal_index[2] - 1].y);
-            normal_coords.push_back(normals[normal_index[2] - 1].z);
             normal_coords.push_back(normals[normal_index[3] - 1].x);
             normal_coords.push_back(normals[normal_index[3] - 1].y);
             normal_coords.push_back(normals[normal_index[3] - 1].z);
+            normal_coords.push_back(normals[normal_index[2] - 1].x);
+            normal_coords.push_back(normals[normal_index[2] - 1].y);
+            normal_coords.push_back(normals[normal_index[2] - 1].z);
+            
 
             texture_coords.push_back(textures[texture_index[0] - 1].x);
             texture_coords.push_back(textures[texture_index[0] - 1].y);
+            texture_coords.push_back(textures[texture_index[2] - 1].x);
+            texture_coords.push_back(textures[texture_index[2] - 1].y);
             texture_coords.push_back(textures[texture_index[1] - 1].x);
             texture_coords.push_back(textures[texture_index[1] - 1].y);
-            texture_coords.push_back(textures[texture_index[2] - 1].x);
-            texture_coords.push_back(textures[texture_index[2] - 1].y);
+            
 
             texture_coords.push_back(textures[texture_index[0] - 1].x);
             texture_coords.push_back(textures[texture_index[0] - 1].y);
-            texture_coords.push_back(textures[texture_index[2] - 1].x);
-            texture_coords.push_back(textures[texture_index[2] - 1].y);
             texture_coords.push_back(textures[texture_index[3] - 1].x);
             texture_coords.push_back(textures[texture_index[3] - 1].y);
+            texture_coords.push_back(textures[texture_index[2] - 1].x);
+            texture_coords.push_back(textures[texture_index[2] - 1].y);
+            
+
+            glm::vec3 tangent1, bitangent1;
+            glm::vec3 tangent2, bitangent2;
+
+            // triangle 1
+            glm::vec3 edge1 = vertices[vertex_index[1] - 1] - vertices[vertex_index[0] - 1];
+            glm::vec3 edge2 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
+            glm::vec2 deltaUV1 = textures[normal_index[1] - 1] - textures[normal_index[0] - 1];
+            glm::vec2 deltaUV2 = textures[normal_index[2] - 1] - textures[normal_index[0] - 1];
+
+            float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+            tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+            tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+            tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+            tangent1 = glm::normalize(tangent1);
+
+            bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+            bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+            bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+            bitangent1 = glm::normalize(bitangent1);
+
+            // triangle 2
+            edge1 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
+            edge2 = vertices[vertex_index[3] - 1] - vertices[vertex_index[0] - 1];
+            deltaUV1 = textures[normal_index[2] - 1] - textures[normal_index[0] - 1];
+            deltaUV2 = textures[normal_index[3] - 1] - textures[normal_index[0] - 1];
+
+            f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+            tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+            tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+            tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+            tangent2 = glm::normalize(tangent2);
+
+
+            bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+            bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+            bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+            bitangent2 = glm::normalize(bitangent2);
+
+            tangent_coords.push_back(tangent1.x);
+            tangent_coords.push_back(tangent1.y);
+            tangent_coords.push_back(tangent1.z);
+            tangent_coords.push_back(tangent1.x);
+            tangent_coords.push_back(tangent1.y);
+            tangent_coords.push_back(tangent1.z);
+            tangent_coords.push_back(tangent1.x);
+            tangent_coords.push_back(tangent1.y);
+            tangent_coords.push_back(tangent1.z);
+
+            tangent_coords.push_back(tangent2.x);
+            tangent_coords.push_back(tangent2.y);
+            tangent_coords.push_back(tangent2.z);
+            tangent_coords.push_back(tangent2.x);
+            tangent_coords.push_back(tangent2.y);
+            tangent_coords.push_back(tangent2.z);
+            tangent_coords.push_back(tangent2.x);
+            tangent_coords.push_back(tangent2.y);
+            tangent_coords.push_back(tangent2.z);
+
+            bitangent_coords.push_back(bitangent1.x);
+            bitangent_coords.push_back(bitangent1.y);
+            bitangent_coords.push_back(bitangent1.z);
+            bitangent_coords.push_back(bitangent1.x);
+            bitangent_coords.push_back(bitangent1.y);
+            bitangent_coords.push_back(bitangent1.z);
+            bitangent_coords.push_back(bitangent1.x);
+            bitangent_coords.push_back(bitangent1.y);
+            bitangent_coords.push_back(bitangent1.z);
+
+            bitangent_coords.push_back(bitangent2.x);
+            bitangent_coords.push_back(bitangent2.y);
+            bitangent_coords.push_back(bitangent2.z);
+            bitangent_coords.push_back(bitangent2.x);
+            bitangent_coords.push_back(bitangent2.y);
+            bitangent_coords.push_back(bitangent2.z);
+            bitangent_coords.push_back(bitangent2.x);
+            bitangent_coords.push_back(bitangent2.y);
+            bitangent_coords.push_back(bitangent2.z);
+
+            // std::cout << bitangent2.x << " " << bitangent2.y << " " << bitangent2.z << std::endl;
+
 
             // faces.push_back(vertex_index[0] - 1);
             // faces.push_back(vertex_index[1] - 1);
@@ -194,10 +270,46 @@ void load_texture(GLuint &tbo, int tex_unit, const std::string tex_path, FREE_IM
         (void *)FreeImage_GetBits(tex_img)
     );
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     FreeImage_Unload(tex_img);
+}
+
+unsigned int load_texture_stb(char const * path) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
 }
 
 int main(void) {
@@ -261,6 +373,20 @@ int main(void) {
     glBufferData(GL_ARRAY_BUFFER, texture_coords.size() * sizeof(float), texture_coords.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    GLuint vbo_tangent;
+    glGenBuffers(1, &vbo_tangent);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_tangent);
+    glBufferData(GL_ARRAY_BUFFER, tangent_coords.size() * sizeof(float), tangent_coords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    GLuint vbo_bitangent;
+    glGenBuffers(1, &vbo_bitangent);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_bitangent);
+    glBufferData(GL_ARRAY_BUFFER, bitangent_coords.size() * sizeof(float), bitangent_coords.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 0, 0);
     
     
     // Setup texture
@@ -269,9 +395,17 @@ int main(void) {
     load_texture(heightmap_id, 2, "rock_height.png", FIF_PNG);
     load_texture(texture_id, 3, "rock.jpg", FIF_JPEG);
 
+    // unsigned int normal_id = load_texture_stb("rock_normal.jpg");
+    // unsigned int heightmap_id = load_texture_stb("rock_height.png");
+    // unsigned int texture_id = load_texture_stb("rock.jpg");
+
+    // glUniform1i(glGetUniformLocation(shader_program, "texture_map"), 0); 
+    // glUniform1i(glGetUniformLocation(shader_program, "normal_map"), 1); 
+    // glUniform1i(glGetUniformLocation(shader_program, "height_map"), 2); 
+
     // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
-    glm::vec3 eye = glm::vec3(0, 20, 20);
+    glm::vec3 eye = glm::vec3(0, 15, 15);
     glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 4.0f / 3.0f, 0.1f, 100.0f);    
     glm::vec3 light_pos = glm::vec3(0, 0, 50);
@@ -287,11 +421,12 @@ int main(void) {
     glUniform3fv(light_pos_shader, 1, &light_pos[0]);
 
     glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);  
+    glFrontFace(GL_CW);
+    // glCullFace(GL_FRONT);
+    // glFrontFace(GL_CCW);  
     
     // Main loop
-    float degree = 0.5;
+    float degree = 1;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -301,6 +436,13 @@ int main(void) {
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
         // stop1();
+
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, texture_id);
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D, normal_id);
+        // glActiveTexture(GL_TEXTURE2);
+        // glBindTexture(GL_TEXTURE_2D, heightmap_id);
 
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, vertex_coords.size());
