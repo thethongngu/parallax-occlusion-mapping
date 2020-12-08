@@ -1,96 +1,153 @@
-#version 400
+#version 330 core
+out vec4 FragColor;
 
-in vec2 out_texture;
-in vec3 out_vertex;
-in vec3 out_normal;
+in VS_OUT {
+    vec3 FragPos;
+    vec2 TexCoords;
+    vec3 TangentLightPos;
+    vec3 TangentViewPos;
+    vec3 TangentFragPos;
+} fs_in;
 
-uniform sampler2D texture_data, normal_data, heightmap_data;
-uniform vec3 light_pos;
-uniform vec3 eye_point;
+uniform sampler2D texture_data;
+uniform sampler2D normal_data;
+uniform sampler2D heightmap_data;
 
-out vec4 out_color;
-
-vec4 CalculateNormal( in vec2 texCoords )
-{
-    vec2 texOffs = 1.0 / textureSize( heightmap_data, 0 ).xy;
-    vec2 scale   = 1.0 / texOffs;
-
-    float hx[9];
-    hx[0] = texture( heightmap_data, texCoords.st + texOffs * vec2(-1.0, -1.0) ).r;
-    hx[1] = texture( heightmap_data, texCoords.st + texOffs * vec2( 0.0, -1.0) ).r;
-    hx[2] = texture( heightmap_data, texCoords.st + texOffs * vec2( 1.0, -1.0) ).r;
-    hx[3] = texture( heightmap_data, texCoords.st + texOffs * vec2(-1.0,  0.0) ).r;
-    hx[4] = texture( heightmap_data, texCoords.st ).r;
-    hx[5] = texture( heightmap_data, texCoords.st + texOffs * vec2( 1.0, 0.0) ).r;
-    hx[6] = texture( heightmap_data, texCoords.st + texOffs * vec2(-1.0, 1.0) ).r;
-    hx[7] = texture( heightmap_data, texCoords.st + texOffs * vec2( 0.0, 1.0) ).r;
-    hx[8] = texture( heightmap_data, texCoords.st + texOffs * vec2( 1.0, 1.0) ).r;
-    vec2  deltaH = vec2(hx[0]-hx[2] + 2.0*(hx[3]-hx[5]) + hx[6]-hx[8], hx[0]-hx[6] + 2.0*(hx[1]-hx[7]) + hx[2]-hx[8]);
-    float h_mid  = hx[4];
-
-    return vec4( normalize( vec3( deltaH * scale, 1.0 ) ), h_mid );
-}
-float CalculateHeight( in vec2 texCoords )
-{
-    float height = texture( heightmap_data, texCoords ).x;
-    return clamp( height, 0.0, 1.0 );
+bool isNan(float val) {
+    return (val <= 0.0 || 0.0 <= val) ? false : true;
 }
 
-vec3 NoParallax( in vec3 texDir3D, in vec2 texCoord )
-{
-    return vec3(texCoord.xy, 0.0);
+void debug_float(float val) {
+    if (val > 0) {
+        FragColor = vec4(0.0, 1.0, 0.0, 1.0);  // right: green
+    } else {
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0); // wrong: red
+    }
 }
 
-void main(){
-    float u_ambient = 0.2;
-    float u_specular = 0.55;
-    float u_shininess = 0.0;
-    float u_diffuse = 0.75;
+void debug_bool(bool val) {
+    if (val == true) {
+        FragColor = vec4(0.0, 1.0, 0.0, 1.0);  // right: green
+    } else {
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0); // wrong: red
+    }
+}
 
-    vec3  objPosEs     = out_vertex;
-    vec3  objNormalEs  = out_normal;
-    vec2  texCoords    = out_texture.st;
-    vec3  normalEs     = ( gl_FrontFacing ? 1.0 : -1.0 ) * normalize( objNormalEs );
+vec2 OffsetParallax(vec2 texCoord, vec3 texDir3D )
+{
+    float parallaxScale = 0.1;
+    float mapHeight     = texture( heightmap_data, texCoord.st ).r;
+    //vec2  texCoordOffst = parallaxScale * mapHeight * texDir3D.xy / texDir3D.z;
+    vec2  texCoordOffst = -parallaxScale * mapHeight * texDir3D.xy;
+    return vec2(texCoord.xy + texCoordOffst.xy);
+}
 
-    // (co-)tangent space
-    vec3  N            = normalize( objNormalEs );
-    vec3  dp1          = dFdx( objPosEs );
-    vec3  dp2          = dFdy( objPosEs );
-    vec2  duv1         = dFdx( texCoords );
-    vec2  duv2         = dFdy( texCoords );
-    vec3  dp2perp      = cross(dp2, N); 
-    vec3  dp1perp      = cross(N, dp1);
-    vec3  T            = dp2perp * duv1.x + dp1perp * duv2.x;
-    vec3  B            = dp2perp * duv1.y + dp1perp * duv2.y;   
-    float invmax       = inversesqrt(max(dot(T, T), dot(B, B)));
-    mat3  tbnMat       = mat3(T * invmax, B * invmax, N * 1.0);
+vec2 SteepParallax(vec2 texCoords, vec3 viewDir)
+{ 
+    // number of depth layers
+    const float minLayers = 8;
+    const float maxLayers = 32;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy / viewDir.z * 0.1; 
+    vec2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    vec2  currentTexCoords     = texCoords;
+    float currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;
+      
+    while(currentLayerDepth < currentDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;  
+        // get depth of next layer
+        currentLayerDepth += layerDepth;  
+    }
+    
+    return currentTexCoords;
+}
 
-    // parallax mapping
-    vec3  texDir3D     = normalize( inverse( tbnMat ) * objPosEs );
-    vec3  newTexCoords = abs(1.0) < 0.001 ? vec3(texCoords.st, 0.0) : NoParallax( texDir3D, texCoords.st );
-    texCoords.st       = newTexCoords.xy;
-    vec4  normalVec    = CalculateNormal( texCoords ); 
-    tbnMat[2].xyz     *= (gl_FrontFacing ? 1.0 : -1.0) * N / 1.0;
-    vec3  nvMappedEs   = normalize( tbnMat * normalVec.xyz );
+vec2 OcclusionParallax(vec2 texCoords, vec3 viewDir)
+{ 
+    // number of depth layers
+    const float minLayers = 8;
+    const float maxLayers = 32;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy / viewDir.z * 0.1; 
+    vec2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    vec2  currentTexCoords     = texCoords;
+    float currentheightmap_dataValue = texture(heightmap_data, currentTexCoords).r;
+      
+    while(currentLayerDepth < currentheightmap_dataValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get heightmap_data value at current texture coordinates
+        currentheightmap_dataValue = texture(heightmap_data, currentTexCoords).r;  
+        // get depth of next layer
+        currentLayerDepth += layerDepth;  
+    }
+    
+    // get texture coordinates before collision (reverse operations)
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
 
-    // texture color
-    vec3 color = texture( texture_data, texCoords.st ).rgb;
+    // get depth after and before collision for linear interpolation
+    float afterDepth  = currentheightmap_dataValue - currentLayerDepth;
+    float beforeDepth = texture(heightmap_data, prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
 
-    // ambient part
-    vec3 lightCol = u_ambient * color;
+    return finalTexCoords;
+}
 
-    // diffuse part
-    vec3  normalV = normalize( nvMappedEs );
-    vec3  lightV  = normalize( -light_pos );
-    float NdotL   = max( 0.0, dot( normalV, lightV ) );
-    lightCol     += NdotL * u_diffuse * color;
+void main() {           
+    // offset texture coordinates with Parallax Mapping
+    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
+    vec2 texCoords = fs_in.TexCoords;
 
-    // specular part
-    vec3  eyeV      = normalize( -objPosEs );
-    vec3  halfV     = normalize( eyeV + lightV );
-    float NdotH     = max( 0.0, dot( normalV, halfV ) );
-    float kSpecular = ( u_shininess + 2.0 ) * pow( NdotH, u_shininess ) / ( 2.0 * 3.14159265 );
-    lightCol       += kSpecular * u_specular * color;
+    if (isNan(viewDir.x) == true) {
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
 
-    out_color = vec4( lightCol.rgb, 1.0 );
+        texCoords = SteepParallax(fs_in.TexCoords, viewDir);       
+        if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0) {
+            FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        } else {
+            // // obtain normal from normal map
+            // vec3 normal = texture(normal_data, texCoords).rgb;
+            // normal = normalize(normal * 2.0 - 1.0);   
+        
+            
+            vec3 color = texture(texture_data, texCoords).rgb;
+            
+            // vec3 ambient = 0.1 * color;  // ambient
+            
+            // vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
+            // float diff = max(dot(lightDir, normal), 0.2);
+            // vec3 diffuse = diff * color;  // diffuse
+            
+            // vec3 reflectDir = reflect(-lightDir, normal);
+            // vec3 halfwayDir = normalize(lightDir + viewDir);  
+            // float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+            // vec3 specular = vec3(0.2) * spec; // specular    
+
+            vec3 aa = texture(normal_data, fs_in.TexCoords).rgb;
+            FragColor = vec4(color, 1.0);
+        }
+    }
 }

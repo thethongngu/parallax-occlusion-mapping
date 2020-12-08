@@ -344,7 +344,7 @@ int main(void) {
     GLint normal_shader = glGetUniformLocation(shader_program, "normal_data");
     GLint heightmap_shader = glGetUniformLocation(shader_program, "heightmap_data");
 
-    GLint eye_point_shader = glGetUniformLocation(shader_program, "eye_point");
+    GLint eye_point_shader = glGetUniformLocation(shader_program, "eye_pos");
     GLint light_pos_shader = glGetUniformLocation(shader_program, "light_pos");
 
     // Setup VAO
@@ -424,7 +424,7 @@ int main(void) {
     glFrontFace(GL_CW);
     
     // Main loop
-    float degree = 10;
+    float degree = 0.5;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -433,7 +433,7 @@ int main(void) {
 
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
-        stop1();
+        // stop1();
 
         // glActiveTexture(GL_TEXTURE0);
         // glBindTexture(GL_TEXTURE_2D, texture_id);
