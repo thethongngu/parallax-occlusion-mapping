@@ -18,7 +18,7 @@
 #define PI 3.14159
 
 #define debug(a) std::cerr << #a << " = " << a << std::endl;
-#define stop1() std::string a; std::cin >> a;
+#define stop1() std::string a; std::getline(std::cin, a)
 
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> normals;
@@ -320,7 +320,7 @@ int main(void) {
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
     glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
 
-    window = glfwCreateWindow(800, 600, "Project 02", NULL, NULL);
+    window = glfwCreateWindow(1024, 768, "Project 02", NULL, NULL);
     if (!window) {
         glfwTerminate();
         exit(EXIT_FAILURE);
@@ -398,7 +398,6 @@ int main(void) {
     // unsigned int normal_id = load_texture_stb("rock_normal.jpg");
     // unsigned int heightmap_id = load_texture_stb("rock_height.png");
     // unsigned int texture_id = load_texture_stb("rock.jpg");
-
     // glUniform1i(glGetUniformLocation(shader_program, "texture_map"), 0); 
     // glUniform1i(glGetUniformLocation(shader_program, "normal_map"), 1); 
     // glUniform1i(glGetUniformLocation(shader_program, "height_map"), 2); 
@@ -433,7 +432,7 @@ int main(void) {
 
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
-        // stop1();
+        stop1();
 
         // glActiveTexture(GL_TEXTURE0);
         // glBindTexture(GL_TEXTURE_2D, texture_id);
