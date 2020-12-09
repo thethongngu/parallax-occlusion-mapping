@@ -30,12 +30,16 @@ std::vector<unsigned int> faces;
 
 void load_obj() {
     std::ifstream obj_file;
-    obj_file.open("Sphere.obj");
+    obj_file.open("sphere1.obj");
 
     std::string type;
     while (!obj_file.eof()) {
         obj_file >> type;
-        if (type == "v") {
+        
+        if (type == "#") {
+            continue;
+        }
+        else if (type == "v") {
             float x, y, z;
             obj_file >> x >> y >> z;
             vertices.push_back(glm::vec3(x, y, z));
@@ -47,86 +51,39 @@ void load_obj() {
 
         } else if (type == "vt") {
             float x, y, z;
-            obj_file >> x >> y >> z;
+            obj_file >> x >> y;
             textures.push_back(glm::vec2(x, y));
 
         } else if (type == "f") {
             std::string raw_data;
-            int vertex_index[4], texture_index[4], normal_index[4];
-            for(int i = 0 ; i < 4; i++) {
+            int vertex_index[3], texture_index[3], normal_index[3];
+            for(int i = 0 ; i < 3; i++) {
                 obj_file >> raw_data;
                 auto slash_st = raw_data.find('/');
                 auto slash_nd = raw_data.find('/', slash_st + 1);
+
                 vertex_index[i] = atoi(raw_data.substr(0, slash_st).c_str());
+                vertex_coords.push_back(vertices[vertex_index[i] - 1].x);
+                vertex_coords.push_back(vertices[vertex_index[i] - 1].y);
+                vertex_coords.push_back(vertices[vertex_index[i] - 1].z);
+
                 texture_index[i] = atoi(raw_data.substr(slash_st + 1, slash_nd - slash_st - 1).c_str());
+                texture_coords.push_back(textures[texture_index[i] - 1].x);
+                texture_coords.push_back(textures[texture_index[i] - 1].y);
+
                 normal_index[i] = atoi(raw_data.substr(slash_nd + 1).c_str());
+                normal_coords.push_back(normals[normal_index[i] - 1].x);
+                normal_coords.push_back(normals[normal_index[i] - 1].y);
+                normal_coords.push_back(normals[normal_index[i] - 1].x);
+
             }
 
-            vertex_coords.push_back(vertices[vertex_index[0] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[0] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[0] - 1].z);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
-            vertex_coords.push_back(vertices[vertex_index[1] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[1] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[1] - 1].z);
-
-            vertex_coords.push_back(vertices[vertex_index[0] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[0] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[0] - 1].z);
-            vertex_coords.push_back(vertices[vertex_index[3] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[3] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[3] - 1].z);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].x);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
-            vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
-        
-            normal_coords.push_back(normals[normal_index[0] - 1].x);
-            normal_coords.push_back(normals[normal_index[0] - 1].y);
-            normal_coords.push_back(normals[normal_index[0] - 1].z);
-            normal_coords.push_back(normals[normal_index[2] - 1].x);
-            normal_coords.push_back(normals[normal_index[2] - 1].y);
-            normal_coords.push_back(normals[normal_index[2] - 1].z);
-            normal_coords.push_back(normals[normal_index[1] - 1].x);
-            normal_coords.push_back(normals[normal_index[1] - 1].y);
-            normal_coords.push_back(normals[normal_index[1] - 1].z);
-            
-            normal_coords.push_back(normals[normal_index[0] - 1].x);
-            normal_coords.push_back(normals[normal_index[0] - 1].y);
-            normal_coords.push_back(normals[normal_index[0] - 1].z);
-            normal_coords.push_back(normals[normal_index[3] - 1].x);
-            normal_coords.push_back(normals[normal_index[3] - 1].y);
-            normal_coords.push_back(normals[normal_index[3] - 1].z);
-            normal_coords.push_back(normals[normal_index[2] - 1].x);
-            normal_coords.push_back(normals[normal_index[2] - 1].y);
-            normal_coords.push_back(normals[normal_index[2] - 1].z);
-            
-
-            texture_coords.push_back(textures[texture_index[0] - 1].x);
-            texture_coords.push_back(textures[texture_index[0] - 1].y);
-            texture_coords.push_back(textures[texture_index[2] - 1].x);
-            texture_coords.push_back(textures[texture_index[2] - 1].y);
-            texture_coords.push_back(textures[texture_index[1] - 1].x);
-            texture_coords.push_back(textures[texture_index[1] - 1].y);
-            
-
-            texture_coords.push_back(textures[texture_index[0] - 1].x);
-            texture_coords.push_back(textures[texture_index[0] - 1].y);
-            texture_coords.push_back(textures[texture_index[3] - 1].x);
-            texture_coords.push_back(textures[texture_index[3] - 1].y);
-            texture_coords.push_back(textures[texture_index[2] - 1].x);
-            texture_coords.push_back(textures[texture_index[2] - 1].y);
-            
-
             glm::vec3 tangent1, bitangent1;
-            glm::vec3 tangent2, bitangent2;
 
-            // triangle 1
-            glm::vec3 edge1 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
-            glm::vec3 edge2 = vertices[vertex_index[1] - 1] - vertices[vertex_index[0] - 1];
-            glm::vec2 deltaUV1 = textures[texture_index[2] - 1] - textures[texture_index[0] - 1];
-            glm::vec2 deltaUV2 = textures[texture_index[1] - 1] - textures[texture_index[0] - 1];
+            glm::vec3 edge1 = vertices[vertex_index[1] - 1] - vertices[vertex_index[0] - 1];
+            glm::vec3 edge2 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
+            glm::vec2 deltaUV1 = textures[texture_index[1] - 1] - textures[texture_index[0] - 1];
+            glm::vec2 deltaUV2 = textures[texture_index[2] - 1] - textures[texture_index[0] - 1];
 
             float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
@@ -140,25 +97,6 @@ void load_obj() {
             bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
             bitangent1 = glm::normalize(bitangent1);
 
-            // triangle 2
-            edge1 = vertices[vertex_index[3] - 1] - vertices[vertex_index[0] - 1];
-            edge2 = vertices[vertex_index[2] - 1] - vertices[vertex_index[0] - 1];
-            deltaUV1 = textures[texture_index[3] - 1] - textures[texture_index[0] - 1];
-            deltaUV2 = textures[texture_index[2] - 1] - textures[texture_index[0] - 1];
-
-            f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-            tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-            tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-            tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-            tangent2 = glm::normalize(tangent2);
-
-
-            bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-            bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-            bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-            bitangent2 = glm::normalize(bitangent2);
-
             tangent_coords.push_back(tangent1.x);
             tangent_coords.push_back(tangent1.y);
             tangent_coords.push_back(tangent1.z);
@@ -169,16 +107,6 @@ void load_obj() {
             tangent_coords.push_back(tangent1.y);
             tangent_coords.push_back(tangent1.z);
 
-            tangent_coords.push_back(tangent2.x);
-            tangent_coords.push_back(tangent2.y);
-            tangent_coords.push_back(tangent2.z);
-            tangent_coords.push_back(tangent2.x);
-            tangent_coords.push_back(tangent2.y);
-            tangent_coords.push_back(tangent2.z);
-            tangent_coords.push_back(tangent2.x);
-            tangent_coords.push_back(tangent2.y);
-            tangent_coords.push_back(tangent2.z);
-
             bitangent_coords.push_back(bitangent1.x);
             bitangent_coords.push_back(bitangent1.y);
             bitangent_coords.push_back(bitangent1.z);
@@ -188,43 +116,6 @@ void load_obj() {
             bitangent_coords.push_back(bitangent1.x);
             bitangent_coords.push_back(bitangent1.y);
             bitangent_coords.push_back(bitangent1.z);
-
-            bitangent_coords.push_back(bitangent2.x);
-            bitangent_coords.push_back(bitangent2.y);
-            bitangent_coords.push_back(bitangent2.z);
-            bitangent_coords.push_back(bitangent2.x);
-            bitangent_coords.push_back(bitangent2.y);
-            bitangent_coords.push_back(bitangent2.z);
-            bitangent_coords.push_back(bitangent2.x);
-            bitangent_coords.push_back(bitangent2.y);
-            bitangent_coords.push_back(bitangent2.z);
-
-            // std::cout << bitangent2.x << " " << bitangent2.y << " " << bitangent2.z << std::endl;
-
-
-            // faces.push_back(vertex_index[0] - 1);
-            // faces.push_back(vertex_index[1] - 1);
-            // faces.push_back(vertex_index[2] - 1);
-
-            // faces.push_back(texture_index[0] - 1);
-            // faces.push_back(texture_index[1] - 1);
-            // faces.push_back(texture_index[2] - 1);
-
-            // faces.push_back(normal_index[0] - 1);
-            // faces.push_back(normal_index[1] - 1);
-            // faces.push_back(normal_index[2] - 1);
-
-            // faces.push_back(vertex_index[0] - 1);
-            // faces.push_back(vertex_index[2] - 1);
-            // faces.push_back(vertex_index[3] - 1);
-
-            // faces.push_back(texture_index[0] - 1);
-            // faces.push_back(texture_index[2] - 1);
-            // faces.push_back(texture_index[3] - 1);
-
-            // faces.push_back(normal_index[0] - 1);
-            // faces.push_back(normal_index[2] - 1);
-            // faces.push_back(normal_index[3] - 1);
         }
     }
 
@@ -404,7 +295,7 @@ int main(void) {
 
     // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
-    glm::vec3 eye = glm::vec3(0, 15, 15);
+    glm::vec3 eye = glm::vec3(0, 20, 20);
     glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 4.0f / 3.0f, 0.1f, 100.0f);    
     glm::vec3 light_pos = glm::vec3(0, 0, 50);
@@ -420,7 +311,7 @@ int main(void) {
     glUniform3fv(light_pos_shader, 1, &light_pos[0]);
 
     glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CW);
+    glFrontFace(GL_CCW);
     
     // Main loop
     float degree = 0.5;
