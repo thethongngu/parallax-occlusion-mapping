@@ -314,14 +314,16 @@ int main(void) {
     glFrontFace(GL_CCW);
     
     // Main loop
-    float degree = 0.5;
+    float degree = 0;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
-        degree = fmod(degree, 360);
-        model = glm::rotate(model, glm::radians(degree), glm::vec3(1, 0, 0));
+        degree = fmod(degree + 0.5, 360);
+        eye = glm::vec3(cos(glm::radians(degree)) * 20, sin(glm::radians(degree)) * 20, 0);
+        glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
 
-        glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
+        glUniform3fv(eye_point_shader, 1, &eye[0]);
 
         // stop1();
 
