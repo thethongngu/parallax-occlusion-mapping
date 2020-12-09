@@ -139,7 +139,7 @@ vec4 NormalMapping() {
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
 
     vec3 specular = vec3(0.2) * spec;
-    return vec4(specular, 1.0);
+    return vec4(ambient + diffuse + specular, 1.0);
 }
 
 void main() {           

@@ -82,8 +82,8 @@ void load_obj() {
             vertex_coords.push_back(vertices[vertex_index[2] - 1].y);
             vertex_coords.push_back(vertices[vertex_index[2] - 1].z);
         
-            normal_coords.push_back(normals[normal_index[0] - 1].y);
             normal_coords.push_back(normals[normal_index[0] - 1].x);
+            normal_coords.push_back(normals[normal_index[0] - 1].y);
             normal_coords.push_back(normals[normal_index[0] - 1].z);
             normal_coords.push_back(normals[normal_index[2] - 1].x);
             normal_coords.push_back(normals[normal_index[2] - 1].y);
@@ -92,8 +92,8 @@ void load_obj() {
             normal_coords.push_back(normals[normal_index[1] - 1].y);
             normal_coords.push_back(normals[normal_index[1] - 1].z);
             
-            normal_coords.push_back(normals[normal_index[0] - 1].y);
             normal_coords.push_back(normals[normal_index[0] - 1].x);
+            normal_coords.push_back(normals[normal_index[0] - 1].y);
             normal_coords.push_back(normals[normal_index[0] - 1].z);
             normal_coords.push_back(normals[normal_index[3] - 1].x);
             normal_coords.push_back(normals[normal_index[3] - 1].y);
@@ -432,7 +432,7 @@ int main(void) {
 
         glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
 
-        stop1();
+        // stop1();
 
         // glActiveTexture(GL_TEXTURE0);
         // glBindTexture(GL_TEXTURE_2D, texture_id);
