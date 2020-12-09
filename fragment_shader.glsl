@@ -2,11 +2,11 @@
 out vec4 FragColor;
 
 in VS_OUT {
-    vec3 FragPos;
-    vec2 TexCoords;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
+    vec3 frag_coords;
+    vec2 tex_coords;
+    vec3 tangent_light_pos;
+    vec3 tangent_view_pos;
+    vec3 tangent_frag_pos;
 } fs_in;
 
 uniform sampler2D texture_data;
@@ -33,152 +33,64 @@ void debug_bool(bool val) {
     }
 }
 
-vec2 OffsetParallax(vec2 texCoords, vec3 viewDir)
-{
-    float height =  texture(heightmap_data, texCoords).r;     
-    return texCoords - viewDir.xy * (height * 0.1);  
-}
+vec2 OcclusionParallax(vec2 tex_coords, vec3 view_dir) { 
+    
+    const float min_l = 8;
+    const float max_l = 32;
+    float num_layer = mix(max_l, min_l, abs(dot(vec3(0.0, 0.0, 1.0), view_dir)));  
 
-vec2 SteepParallax(vec2 texCoords, vec3 viewDir)
-{ 
-    // number of depth layers
-    const float minLayers = 8;
-    const float maxLayers = 32;
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
-    // calculate the size of each layer
-    float layerDepth = 1.0 / numLayers;
-    // depth of current layer
-    float currentLayerDepth = 0.0;
-    // the amount to shift the texture coordinates per layer (from vector P)
-    vec2 P = viewDir.xy / viewDir.z * 0.1; 
-    vec2 deltaTexCoords = P / numLayers;
-  
-    // get initial values
-    vec2  currentTexCoords     = texCoords;
-    float currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;
+    float depth_unit = 1.0 / num_layer;
+    float curr_layer_depth = 0.0;
+    vec2 P = view_dir.xy / view_dir.z * 0.01; 
+    vec2 delta = P / num_layer;
+
+    vec2  curr_tex_coords = tex_coords;
+    float curr_heightmap_value = 1.0 - texture(heightmap_data, curr_tex_coords).r;
       
-    while(currentLayerDepth < currentDepthMapValue)
-    {
-        // shift texture coordinates along direction of P
-        currentTexCoords -= deltaTexCoords;
-        // get depthmap value at current texture coordinates
-        currentDepthMapValue = texture(heightmap_data, currentTexCoords).r;  
-        // get depth of next layer
-        currentLayerDepth += layerDepth;  
+    while(curr_layer_depth < curr_heightmap_value) {
+        curr_tex_coords -= delta;
+        curr_heightmap_value = 1.0 - texture(heightmap_data, curr_tex_coords).r;  
+        curr_layer_depth += depth_unit;  
     }
     
-    return currentTexCoords;
-}
-
-vec2 OcclusionParallax(vec2 texCoords, vec3 viewDir) { 
-    // number of depth layers
-    const float minLayers = 8;
-    const float maxLayers = 32;
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
-    // calculate the size of each layer
-    float layerDepth = 1.0 / numLayers;
-    // depth of current layer
-    float currentLayerDepth = 0.0;
-    // the amount to shift the texture coordinates per layer (from vector P)
-    vec2 P = viewDir.xy / viewDir.z * 0.1; 
-    vec2 deltaTexCoords = P / numLayers;
-  
-    // get initial values
-    vec2  currentTexCoords     = texCoords;
-    float currentheightmap_dataValue = texture(heightmap_data, currentTexCoords).r;
-      
-    while(currentLayerDepth < currentheightmap_dataValue)
-    {
-        // shift texture coordinates along direction of P
-        currentTexCoords -= deltaTexCoords;
-        // get heightmap_data value at current texture coordinates
-        currentheightmap_dataValue = texture(heightmap_data, currentTexCoords).r;  
-        // get depth of next layer
-        currentLayerDepth += layerDepth;  
-    }
-    
-    // get texture coordinates before collision (reverse operations)
-    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-
-    // get depth after and before collision for linear interpolation
-    float afterDepth  = currentheightmap_dataValue - currentLayerDepth;
-    float beforeDepth = texture(heightmap_data, prevTexCoords).r - currentLayerDepth + layerDepth;
+    vec2 prevtex_coords = curr_tex_coords + delta;
+    float after  = curr_heightmap_value - curr_layer_depth;
+    float before = 1.0 - texture(heightmap_data, prevtex_coords).r - curr_layer_depth + depth_unit;
  
-    // interpolation of texture coordinates
-    float weight = afterDepth / (afterDepth - beforeDepth);
-    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+    float weight = after / (after - before);
+    vec2 finaltex_coords = prevtex_coords * weight + curr_tex_coords * (1.0 - weight);
 
-    return finalTexCoords;
-}
-
-vec4 NormalMapping() {
-    // obtain normal from normal map in range [0,1]
-    vec3 normal = texture(normal_data, fs_in.TexCoords).rgb;
-
-    // transform normal vector to range [-1,1]
-    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
-   
-    // get diffuse color
-    vec3 color = texture(texture_data, fs_in.TexCoords).rgb;
-    if(fs_in.TexCoords.x > 1.0 || fs_in.TexCoords.y > 1.0 || fs_in.TexCoords.x < 0.0 || fs_in.TexCoords.y < 0.0) {
-        color = vec3(1.0, 0.0, 0.0);
-    }
-
-    // ambient
-    vec3 ambient = 0.1 * color;
-
-    // diffuse
-    vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
-    float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * color;
-
-    // specular
-    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
-    vec3 reflectDir = reflect(-lightDir, normal);
-    vec3 halfwayDir = normalize(lightDir + viewDir);  
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-
-    vec3 specular = vec3(0.2) * spec;
-    return vec4(ambient + diffuse + specular, 1.0);
+    return finaltex_coords;
 }
 
 void main() {           
-    // // offset texture coordinates with Parallax Mapping
-    // vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
-    // vec2 texCoords = fs_in.TexCoords;
+    vec3 view_dir = normalize(fs_in.tangent_view_pos - fs_in.tangent_frag_pos);
+    vec2 final_tex_coords = fs_in.tex_coords;
 
-    // if (isNan(viewDir.x) == true) {
-    //     FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    // } else {
-
-    //     texCoords = OffsetParallax(fs_in.TexCoords, viewDir);       
-    //     if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0) {
-    //         FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    //     } else {
-    //         // // obtain normal from normal map
-    //         // vec3 normal = texture(normal_data, texCoords).rgb;
-    //         // normal = normalize(normal * 2.0 - 1.0);   
-        
+    if (isNan(view_dir.x) == true) {
+        discard;
+    } else {
+        final_tex_coords = OcclusionParallax(fs_in.tex_coords, view_dir);       
+        if(final_tex_coords.x > 1.0 || final_tex_coords.y > 1.0 || final_tex_coords.x < 0.0 || final_tex_coords.y < 0.0) {
+            discard;
             
-    //         vec3 color = texture(texture_data, texCoords).rgb;
+        } else {
+            vec3 normal = texture(normal_data, final_tex_coords).rgb;
+            normal = normalize(normal * 2.0 - 1.0);   
+            vec3 color = texture(texture_data, final_tex_coords).rgb;
             
-    //         // vec3 ambient = 0.1 * color;  // ambient
-            
-    //         // vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
-    //         // float diff = max(dot(lightDir, normal), 0.2);
-    //         // vec3 diffuse = diff * color;  // diffuse
-            
-    //         // vec3 reflectDir = reflect(-lightDir, normal);
-    //         // vec3 halfwayDir = normalize(lightDir + viewDir);  
-    //         // float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-    //         // vec3 specular = vec3(0.2) * spec; // specular    
+            vec3 ambient = 0.1 * color;
+            vec3 light_dir = normalize(fs_in.tangent_light_pos - fs_in.tangent_frag_pos);
 
-    //         vec3 aa = texture(texture_data, fs_in.TexCoords).rgb;
-    //         FragColor = vec4(color, 1.0);
-    //     }
-    // }
+            float diff = max(dot(light_dir, normal), 0.0);
+            vec3 diffuse = diff * color;
 
-    FragColor = NormalMapping();
+            vec3 view_dir = normalize(fs_in.tangent_view_pos - fs_in.tangent_frag_pos);
+            vec3 reflectDir = reflect(-light_dir, normal);
+            vec3 halfwayDir = normalize(light_dir + view_dir);  
+            vec3 specular = vec3(0.2) * pow(max(dot(normal, halfwayDir), 0.0), 32.0);
 
-    // FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            FragColor = vec4(ambient + diffuse + specular, 1.0);
+        }
+    }
 }

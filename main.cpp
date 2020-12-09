@@ -295,10 +295,10 @@ int main(void) {
 
     // Setup transformation matrix
     glm::mat4 model = glm::mat4(1.0f);
-    glm::vec3 eye = glm::vec3(0, 20, 20);
-    glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    glm::vec3 eye = glm::vec3(0, 25, 0);
+    glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 4.0f / 3.0f, 0.1f, 100.0f);    
-    glm::vec3 light_pos = glm::vec3(0, 0, 50);
+    glm::vec3 light_pos = glm::vec3(0, 20, 0);
 
     // Init data for shader
     glUniformMatrix4fv(model_shader, 1, GL_FALSE, &model[0][0]);
@@ -315,15 +315,31 @@ int main(void) {
     
     // Main loop
     float degree = 0;
+    float dist = 30;
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // rotate camera
         degree = fmod(degree + 0.5, 360);
-        eye = glm::vec3(cos(glm::radians(degree)) * 20, sin(glm::radians(degree)) * 20, 0);
+        eye = glm::vec3(cos(glm::radians(degree)) * 25, sin(glm::radians(degree)) * 25, 0);
         glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
-
-        glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
         glUniform3fv(eye_point_shader, 1, &eye[0]);
+        glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
+
+        // rotata sun 
+        // degree = fmod(degree + 0.5, 360);
+        // light_pos = glm::vec3(cos(glm::radians(degree)) * 20, sin(glm::radians(degree)) * 20, 0);
+        // glUniform3fv(light_pos_shader, 1, &light_pos[0]);
+
+        // move near
+        // dist -= 0.1;
+        // eye = glm::vec3(0, dist, 0);
+        // glm::mat4 view = glm::lookAt(eye,  glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+        // glUniform3fv(eye_point_shader, 1, &eye[0]);
+        // glUniformMatrix4fv(view_shader, 1, GL_FALSE, &view[0][0]);
+
+        
+        
 
         // stop1();
 
